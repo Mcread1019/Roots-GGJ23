@@ -13,12 +13,17 @@ public class PlayerController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
+        crumbText.enabled = false;
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown("w") || Input.GetKeyDown("a") || Input.GetKeyDown("s") || Input.GetKeyDown("d") || Input.GetKeyDown("space") || Input.GetKeyDown("left ctrl"))
+        {
+            crumbText.enabled = true;
+        }
+
         crumbText.text = "Crumbs: " + crumb.ToString(); 
     }
 

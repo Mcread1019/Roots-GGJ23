@@ -2,14 +2,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class MovementController : MonoBehaviour
 {
 
     bool grounded = false;
     bool bounce = false;
+    bool bounceLow = false;
     bool wet = false;
     public bool Debug = false;
+    public bool title = true;
+    public bool tut = false;
+    public bool credits = false;
     public bool resetSceneOnDeath = false;
     public GameObject camera;
 
@@ -21,6 +26,8 @@ public class MovementController : MonoBehaviour
     public float jumpHeight = 1.0f;
     public float bounceHeight = 1.0f;
     public float bounceHeight_ORG;
+    public float bounceLowHeight = 1.0f;
+    public float bounceLowHeight_ORG;
 
     public CharacterController charController;
     public MouseController mouseController;
@@ -31,36 +38,89 @@ public class MovementController : MonoBehaviour
     public float distanceFromGround = 0.4f;
     public LayerMask groundLayerMask;
     public LayerMask bounceLayerMask;
+    public LayerMask bounceLowLayerMask;
     public LayerMask waterLayerMask;
+
+    bool newTitles = false;
+    public TextMeshProUGUI titleText;
+    public TextMeshProUGUI titleTutText;
+    public TextMeshProUGUI titleCredText;
+    public TextMeshProUGUI tutText1;
+    public TextMeshProUGUI tutText2;
+    public TextMeshProUGUI tutText3;
+    public TextMeshProUGUI tutText4;
+    public TextMeshProUGUI credText1;
+    public TextMeshProUGUI credText2;
+    public TextMeshProUGUI credText3;
+    public TextMeshProUGUI credText4;
+    public TextMeshProUGUI infoText;
 
     // Start is called before the first frame update
     void Start()
     {
         bounceHeight_ORG = bounceHeight;
+        bounceLowHeight_ORG = bounceLowHeight;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown("escape"))
+        if (title)
         {
-            if (Debug)
-            {
-                print("Player: Quit Game");
-            }
-            Application.Quit();
+            titleText.enabled = true;
+            infoText.enabled = true;
+            newTitles = false;
         }
-        if (Input.GetKeyDown("r"))
+        else
         {
-            if (Debug)
+            titleText.enabled = false;
+            infoText.enabled = false;
+            newTitles = true;
+        }
+
+        if (tut)
+        {
+            if (newTitles)
             {
-                print("Player: Reset Game");
+                titleTutText.enabled = true;
             }
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            tutText1.enabled = true;
+            tutText2.enabled = true;
+            tutText3.enabled = true;
+            tutText4.enabled = true;
+        }
+        else
+        {
+            titleTutText.enabled = false;
+            tutText1.enabled = false;
+            tutText2.enabled = false;
+            tutText3.enabled = false;
+            tutText4.enabled = false;
+        }
+
+        if (credits)
+        {
+            if (newTitles)
+            {
+                titleCredText.enabled = true;
+            }
+            credText1.enabled = true;
+            credText2.enabled = true;
+            credText3.enabled = true;
+            credText4.enabled = true;
+        }
+        else
+        {
+            titleCredText.enabled = false;
+            credText1.enabled = false;
+            credText2.enabled = false;
+            credText3.enabled = false;
+            credText4.enabled = false;
         }
 
         grounded = Physics.CheckSphere(groundCheck.position, distanceFromGround, groundLayerMask);
         bounce = Physics.CheckSphere(groundCheck.position, distanceFromGround, bounceLayerMask);
+        bounceLow = Physics.CheckSphere(groundCheck.position, distanceFromGround, bounceLowLayerMask);
         wet = Physics.CheckSphere(groundCheck.position, distanceFromGround, waterLayerMask);
 
         if (grounded && vel.y < 0.0f)
@@ -81,6 +141,17 @@ public class MovementController : MonoBehaviour
             Jump(bounceHeight);
         }
         bounceHeight = bounceHeight_ORG;
+
+        if (bounceLow && vel.y < 0.0f)
+        {
+            if (Debug)
+            {
+                print("Player: Bounce");
+            }
+            Jump(bounceLowHeight);
+        }
+        bounceLowHeight = bounceLowHeight_ORG;
+
         camera.transform.position = new Vector3(straightPoint.position.x, straightPoint.position.y, straightPoint.position.z);
 
         if (wet)
@@ -112,7 +183,37 @@ public class MovementController : MonoBehaviour
 
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
-        
+
+        if (Input.GetKeyDown("w") || Input.GetKeyDown("a") || Input.GetKeyDown("s") || Input.GetKeyDown("d") || Input.GetKeyDown("space") || Input.GetKeyDown("left ctrl"))
+        {
+            title = false;
+        }
+
+        if (Input.GetKeyDown("t"))
+        {
+            if(tut)
+            {
+                tut = false;
+            }
+            else
+            {
+                tut = true;
+                credits = false;
+            }
+        }
+
+        if (Input.GetKeyDown("c"))
+        {
+            if (credits)
+            {
+                credits = false;
+            }
+            else
+            {
+                credits = true;
+                tut = false;
+            }
+        }
 
         if (Input.GetButton("Crouch"))
         {
@@ -170,5 +271,6 @@ public class MovementController : MonoBehaviour
         camera.transform.position = new Vector3(crouchPoint.transform.position.x, crouchPoint.transform.position.y, crouchPoint.transform.position.z);
         vel.y += (gravity * 2) * Time.deltaTime;
         bounceHeight = bounceHeight * 2;
+        bounceLowHeight = bounceLowHeight * 2;
     }
 }
