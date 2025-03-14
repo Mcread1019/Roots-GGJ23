@@ -2,45 +2,35 @@ using UnityEngine;
 
 public class FlyingEnemy : MonoBehaviour
 {
-    [Header("Patrol Settings")]
-    public Transform[] patrolPoints;  // Set these in the inspector
-    public float patrolSpeed = 5f;
+    public Transform[] patrolPoints;
+    public float speed = 3f;
+    public float detectionRange = 10f;
+    public float shootingInterval = 1.5f;
+    public float returnToPatrolTime = 3f;
+    public Transform player;
+    public GameObject bulletPrefab;
+    public Transform firePoint;
+
     private int currentPatrolIndex = 0;
-
-    [Header("Chase Settings")]
-    public float chaseSpeed = 7f;
-    public float sightDistance = 15f;
-    public float fieldOfViewAngle = 45f;
-    public float chaseDurationAfterLost = 2f;
-    private float chaseTimer;
-
-    private Transform player;
     private bool isChasing = false;
-
-    void Start()
-    {
-        // Assumes the player has the tag "Player"
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-        chaseTimer = chaseDurationAfterLost;
-    }
+    private float lastShotTime;
+    private float lastSeenTime;
 
     void Update()
     {
-        // Check if the enemy can see the player
+
+        //looks to see if the enemy can see the player, if so, then chase and shoot, otherwise go back to its patrol route after an amount of time
         if (CanSeePlayer())
         {
             isChasing = true;
-            chaseTimer = chaseDurationAfterLost; // reset the timer when the player is seen
+            lastSeenTime = Time.time;
+            ShootAtPlayer();
         }
-        else if (isChasing)
+        else if (isChasing && Time.time - lastSeenTime > returnToPatrolTime)
         {
-            // Countdown until the enemy stops chasing
-            chaseTimer -= Time.deltaTime;
-            if (chaseTimer <= 0f)
-                isChasing = false;
+            isChasing = false;
         }
 
-        // Decide behavior based on state
         if (isChasing)
         {
             ChasePlayer();
@@ -53,63 +43,40 @@ public class FlyingEnemy : MonoBehaviour
 
     bool CanSeePlayer()
     {
-        Vector3 directionToPlayer = player.position - transform.position;
-        float distanceToPlayer = directionToPlayer.magnitude;
+        if (player == null) return false;
 
-        if (distanceToPlayer > sightDistance)
-            return false;
+        Vector2 directionToPlayer = player.position - transform.position;
+        if (directionToPlayer.magnitude > detectionRange) return false;
 
-        // Check if within field of view
-        float angle = Vector3.Angle(transform.forward, directionToPlayer);
-        if (angle > fieldOfViewAngle)
-            return false;
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, directionToPlayer, detectionRange);
+        return hit.collider != null && hit.collider.transform == player;
+    }
 
-        // Optionally: Use Raycast to check for obstacles
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position, directionToPlayer.normalized, out hit, sightDistance))
+    void ShootAtPlayer()
+    {
+        if (Time.time - lastShotTime > shootingInterval)
         {
-            if (hit.transform != player)
-                return false;
+            lastShotTime = Time.time;
+            Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
         }
-
-        return true;
     }
 
     void ChasePlayer()
     {
-        Vector3 direction = (player.position - transform.position).normalized;
-        transform.position += direction * chaseSpeed * Time.deltaTime;
-        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 5f);
+        transform.position = Vector2.MoveTowards(transform.position, player.position, speed * Time.deltaTime);
     }
 
     void Patrol()
     {
-        if (patrolPoints.Length == 0)
-            return;
+        if (patrolPoints.Length == 0) return;
 
         Transform targetPoint = patrolPoints[currentPatrolIndex];
-        Vector3 direction = (targetPoint.position - transform.position).normalized;
-        transform.position += direction * patrolSpeed * Time.deltaTime;
-        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 5f);
+        transform.position = Vector2.MoveTowards(transform.position, targetPoint.position, speed * Time.deltaTime);
 
-        // Check if reached the current patrol point
-        if (Vector3.Distance(transform.position, targetPoint.position) < 1f)
+        if (Vector2.Distance(transform.position, targetPoint.position) < 0.1f)
         {
             currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
         }
-    }
-
-    // Optional: Visualize the enemy's field of view in the scene view
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, sightDistance);
-
-        Vector3 leftBoundary = Quaternion.Euler(0, -fieldOfViewAngle, 0) * transform.forward;
-        Vector3 rightBoundary = Quaternion.Euler(0, fieldOfViewAngle, 0) * transform.forward;
-        Gizmos.color = Color.blue;
-        Gizmos.DrawLine(transform.position, transform.position + leftBoundary * sightDistance);
-        Gizmos.DrawLine(transform.position, transform.position + rightBoundary * sightDistance);
     }
 }
 
